@@ -27,8 +27,13 @@ const App: React.FC = () => {
   }, []);
 
   const handleOpenSelectKey = async () => {
-    await window.aistudio.openSelectKey();
-    setHasKey(true);
+    try {
+      await window.aistudio.openSelectKey();
+      // Assume success after triggering as per instructions
+      setHasKey(true);
+    } catch (e) {
+      console.error("Failed to open key selector", e);
+    }
   };
 
   const getCoordinates = (): Promise<{ latitude: number, longitude: number } | undefined> => {
@@ -46,6 +51,11 @@ const App: React.FC = () => {
   };
 
   const handleSearch = async (website: string, keywords: string, state: string, engine: SearchEngine) => {
+    if (!hasKey) {
+      setError("Please configure your Gemini API Key before starting an audit.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setPcData(null);
@@ -88,7 +98,14 @@ const App: React.FC = () => {
       setHistory(historyService.saveRecord(newRecord));
       setShowHistory(false);
     } catch (err: any) {
-      setError(err.message || 'Audit failed. Check API connectivity.');
+      const errMsg = err.message || '';
+      if (errMsg.includes("Requested entity was not found")) {
+        setHasKey(false);
+        setError("Your API Key session has expired or is invalid. Please re-select a valid key.");
+        await handleOpenSelectKey();
+      } else {
+        setError(errMsg || 'Audit failed. Check API connectivity.');
+      }
     } finally {
       setLoading(false);
     }
@@ -105,7 +122,6 @@ const App: React.FC = () => {
       const current = results[i];
       const prev = results[i - 1];
       
-      // Gap detection for neighborhood view
       if (prev && current.rank - prev.rank > 1) {
         list.push(
           <div key={`gap-${current.rank}`} className="flex flex-col items-center py-6 group">
@@ -117,7 +133,6 @@ const App: React.FC = () => {
             </div>
           </div>
         );
-        // Show a "Neighborhood" segment start header
         if (current.rank > 40) {
            list.push(
              <div key={`neigh-header-${current.rank}`} className="px-4 py-2 bg-indigo-50 border border-indigo-100 rounded-xl mb-4 text-center">
@@ -140,7 +155,6 @@ const App: React.FC = () => {
 
   const renderRankColumn = (data: SearchResponse, title: string, icon: React.ReactNode) => (
     <div className="space-y-6">
-      {/* Dynamic Header */}
       <div className="flex flex-col gap-4 px-8 py-8 bg-white rounded-[40px] border border-slate-200 shadow-xl shadow-slate-200/50 relative overflow-hidden group">
         <div className="absolute -top-6 -right-6 p-4 opacity-5 scale-[2] group-hover:rotate-12 transition-transform duration-700">
            {icon}
@@ -172,7 +186,6 @@ const App: React.FC = () => {
         )}
       </div>
       
-      {/* Scrollable List container */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between px-4 pb-2 border-b border-slate-200">
            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Organic Ranking Sequence</span>
@@ -182,23 +195,6 @@ const App: React.FC = () => {
       </div>
     </div>
   );
-
-  if (hasKey === false) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 text-center text-white">
-        <div className="max-w-md w-full bg-slate-800 rounded-[48px] p-12 shadow-2xl space-y-8 border border-slate-700">
-          <div className="bg-indigo-600 w-24 h-24 rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-indigo-500/20">
-            <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-            </svg>
-          </div>
-          <h1 className="text-4xl font-black tracking-tighter">SEO Authorization</h1>
-          <p className="text-slate-400 font-medium">To perform high-depth search grounding, a valid Google Gemini API Key is required.</p>
-          <button onClick={handleOpenSelectKey} className="w-full bg-indigo-600 py-5 rounded-2xl font-black text-lg hover:bg-indigo-700 transition-all active:scale-95 shadow-xl shadow-indigo-600/30">Connect AI Studio</button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <Layout onSwitchKey={handleOpenSelectKey}>
@@ -219,7 +215,12 @@ const App: React.FC = () => {
           </p>
         </div>
 
-        <SearchForm onSearch={handleSearch} isLoading={loading} />
+        <SearchForm 
+          onSearch={handleSearch} 
+          isLoading={loading} 
+          hasKey={hasKey} 
+          onOpenKeySelector={handleOpenSelectKey}
+        />
 
         {error && (
           <div className="bg-rose-50 border border-rose-200 p-10 rounded-[40px] text-rose-700 font-black shadow-lg flex items-start gap-6 animate-in fade-in slide-in-from-top-6">
@@ -227,7 +228,7 @@ const App: React.FC = () => {
                <svg className="w-8 h-8 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeWidth={2} /></svg>
             </div>
             <div>
-              <h3 className="text-lg font-black uppercase tracking-tight mb-1">Search Interrupted</h3>
+              <h3 className="text-lg font-black uppercase tracking-tight mb-1">Audit Alert</h3>
               <p className="text-sm opacity-80">{error}</p>
             </div>
           </div>
@@ -254,14 +255,12 @@ const App: React.FC = () => {
 
         {!showHistory && pcData && mobileData ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 animate-in fade-in slide-in-from-bottom-12">
-            {/* Desktop Segment */}
             {renderRankColumn(pcData, 'Desktop PC', (
               <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
             ))}
 
-            {/* Mobile Segment */}
             {renderRankColumn(mobileData, 'Mobile', (
               <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
