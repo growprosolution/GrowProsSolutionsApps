@@ -1,0 +1,7 @@
+{
+  "name": "Copy of OrganicRank Pro",
+  "description": "A high-performance SEO tool for tracking organic keyword rankings across mainstream search engines with state-level localization.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
