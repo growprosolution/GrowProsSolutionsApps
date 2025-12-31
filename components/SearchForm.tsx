@@ -136,28 +136,50 @@ export const SearchForm: React.FC<SearchFormProps> = ({
         </div>
 
         {showKeyInput && !isAiStudio && (
-          <div className="mt-8 pt-8 border-t border-slate-200/60 animate-in fade-in slide-in-from-top-4">
+          <div className="mt-8 pt-8 border-t border-slate-200/60 animate-in fade-in slide-in-from-top-4 space-y-8">
             <div className="flex flex-col md:flex-row gap-4">
               <input 
                 type="password"
-                placeholder="AIza..."
+                placeholder="Paste your AIza... key here"
                 value={tempKey}
                 onChange={(e) => setTempKey(e.target.value)}
-                className="flex-grow px-6 py-4 rounded-2xl border border-slate-200 outline-none focus:border-indigo-500 font-mono text-sm"
+                className="flex-grow px-6 py-4 rounded-2xl border border-slate-200 outline-none focus:border-indigo-500 font-mono text-sm bg-white"
               />
               <button 
                 onClick={() => {
                   onSaveKey(tempKey);
                   setShowKeyInput(false);
                 }}
-                className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all"
+                className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all whitespace-nowrap"
               >
-                Save to Browser
+                Save Key
               </button>
             </div>
-            <p className="mt-4 text-[10px] text-slate-400 leading-relaxed max-w-2xl italic">
-              * Security Note: Your key is saved in <strong>localStorage</strong> (your browser's private vault). It never touches our servers. The connection is direct between you and Google.
-            </p>
+
+            {/* Step-by-step Instructions */}
+            <div className="bg-white/50 border border-slate-200 rounded-3xl p-6 space-y-4">
+              <h5 className="text-[11px] font-black uppercase tracking-widest text-indigo-600 flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeWidth={2}/></svg>
+                How to get your free API Key?
+              </h5>
+              <ol className="text-xs text-slate-600 space-y-3 ml-1">
+                <li className="flex gap-3">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center font-bold text-[10px] text-slate-500">1</span>
+                  <span>Visit <strong><a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">Google AI Studio</a></strong> and sign in with your Google account.</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center font-bold text-[10px] text-slate-500">2</span>
+                  <span>Click the <strong>"Create API key"</strong> button (it's free within generous limits).</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center font-bold text-[10px] text-slate-500">3</span>
+                  <span>Copy the key starting with <strong>"AIza..."</strong> and paste it into the box above.</span>
+                </li>
+              </ol>
+              <div className="pt-2 text-[10px] text-slate-400 leading-relaxed border-t border-slate-100 mt-2 italic">
+                * Security Check: Your key is stored <strong>locally in your browser</strong>. It is never uploaded to any server and is used directly to call Google's API from your computer.
+              </div>
+            </div>
           </div>
         )}
       </div>
