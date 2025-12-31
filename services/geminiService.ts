@@ -12,6 +12,13 @@ export interface WorkerConfig {
 export type DeviceType = 'Desktop' | 'Mobile';
 
 export class GeminiService {
+  private apiKey: string;
+
+  constructor(apiKey?: string) {
+    // 优先级：传入参数 > 环境变量
+    this.apiKey = apiKey || process.env.API_KEY || '';
+  }
+
   private async sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
@@ -144,7 +151,11 @@ export class GeminiService {
     onProgress?: (progress: number) => void,
     coords?: { latitude: number, longitude: number }
   ): Promise<SearchResponse> {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    if (!this.apiKey) {
+      throw new Error("MISSING_API_KEY: Please provide a valid Gemini API Key.");
+    }
+
+    const ai = new GoogleGenAI({ apiKey: this.apiKey });
     const targetDomain = website.toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0];
 
     const config: WorkerConfig = { strat: 'DEEP_DIVE', startRank: 1, endRank: 100, label: 'Full Extraction' };
@@ -155,13 +166,11 @@ export class GeminiService {
       const allResults = response.results;
       let bestRank = response.targetRank;
       
-      // Secondary check: verify domain match if the AI targetRank is missing or inconsistent
       const manualMatch = allResults.find(r => r.url.toLowerCase().includes(targetDomain));
       if (manualMatch && (bestRank === null || manualMatch.rank < bestRank)) {
         bestRank = manualMatch.rank;
       }
 
-      // Filter: Keep Top 40 AND the +/- 5 Neighborhood
       const finalResults = allResults
         .filter(r => {
           const isTop40 = r.rank <= 40;
